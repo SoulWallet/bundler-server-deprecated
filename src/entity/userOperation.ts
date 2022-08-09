@@ -4,8 +4,10 @@
  * @Autor: z.cejay@gmail.com
  * @Date: 2022-07-25 10:53:52
  * @LastEditors: cejay
- * @LastEditTime: 2022-08-08 23:25:33
+ * @LastEditTime: 2022-08-09 15:38:37
  */
+
+import { Web3Helper } from "../utils/web3Helper";
 
 /**
  * @link https://github.com/eth-infinitism/account-abstraction/blob/develop/contracts/UserOperation.sol    
@@ -48,13 +50,6 @@ class UserOperation {
 
     // sender-verified signature over the entire request, the EntryPoint address and the chain ID.
     signature: string = '0x';
-
-
-    verification(): boolean {
-        // #TODO
-        return true;
-    }
-
 }
 
 

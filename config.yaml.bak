@@ -1,0 +1,21 @@
+# http server config
+httpServer:
+  host: "localhost"
+
+# web3 config
+web3:
+  provider: "<web3 provider url [http/https]>"
+
+# entry point
+entryPoint:
+  address: "<entry point address>"
+
+# paymaster config
+paymaster:
+  paymasterAddress: "0x<address>"
+  signatureKey: "0x<privateKey>"
+
+# bundler config
+bundler:
+  interval: 5 # seconds [2,60]
+  privateKeys: ["0x<privateKey1>", "0x<privateKey2>", "0x<privateKey3>"]
