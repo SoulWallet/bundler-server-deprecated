@@ -4,7 +4,7 @@
  * @Autor: z.cejay@gmail.com
  * @Date: 2022-08-08 21:53:06
  * @LastEditors: cejay
- * @LastEditTime: 2022-08-09 19:53:39
+ * @LastEditTime: 2022-08-15 22:05:18
  */
 
 import { Server } from '@hapi/hapi';
@@ -36,8 +36,13 @@ async function main() {
 
     server.route({
         method: 'POST',
-        path: '/',
+        path: '/sign',
         handler: route.paymasterRoute
+    });
+    server.route({
+        method: 'POST',
+        path: '/send',
+        handler: route.bundlerRoute
     });
 
     // handler all other requests

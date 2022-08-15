@@ -2,26 +2,17 @@
  * @Description: 
  * @Version: 1.0
  * @Autor: z.cejay@gmail.com
- * @Date: 2022-08-08 23:13:13
+ * @Date: 2022-08-15 21:37:16
  * @LastEditors: cejay
- * @LastEditTime: 2022-08-15 21:55:24
- */
-/*
- * @Description: 
- * @Version: 1.0
- * @Autor: z.cejay@gmail.com
- * @Date: 2022-08-08 22:46:45
- * @LastEditors: cejay
- * @LastEditTime: 2022-08-08 23:06:55
+ * @LastEditTime: 2022-08-15 22:03:45
  */
 import { ResponseToolkit } from "@hapi/hapi";
 import { HttpPOSTRequest, HttpPOSTResponse, HttpPOSTResponseCode } from "../entity/httpReqResp";
 import { UserOperation } from '../entity/userOperation';
-import { getPayMasterSignHash, signPayMasterHash } from "../utils/userOp";
-import { YamlConfig } from "../utils/yamlConfig";
+import { Bundler } from "../bundle";
 import { Utils } from "../utils/utils";
 
-export class PaymasterRoute {
+export class BundlerRoute {
     public static async handler(request: Request, h: ResponseToolkit, err?: Error | undefined) {
         const resp = new HttpPOSTResponse(HttpPOSTResponseCode.success, '');
         let req: HttpPOSTRequest | undefined = undefined;
@@ -37,65 +28,56 @@ export class PaymasterRoute {
                     resp.code = HttpPOSTResponseCode.unknownDataError;
                 } else {
                     switch (req.method) {
-                        case 'sign':
+                        case 'send':
                             for (const op of opArr) {
                                 const verifyResult = await Utils.verifyUserOperation(op);
                                 if (!verifyResult.valid) {
                                     resp.code = HttpPOSTResponseCode.dataCanNotVerifyError;
                                     resp.msg = verifyResult.error;
                                     return;
-                                } else if (op.paymaster.toLocaleLowerCase() != YamlConfig.getInstance().paymaster.paymasterAddress) {
-                                    resp.code = HttpPOSTResponseCode.unknownPayMaster;
-                                    return;
                                 }
                             }
-                            const signArr = [];
-                            for (const op of opArr) {
-                                signArr.push(PaymasterRoute._sign(op));
-                            }
-                            const signData = await Promise.all(signArr);
-                            resp.data = signData;
+                            const sendRet = await BundlerRoute._send(req.data);
+                            resp.data = sendRet;
                             break;
                         default:
                             resp.code = HttpPOSTResponseCode.unknownMethodError;
                             break;
                     }
                 }
-
             }
-
-
         } catch (error) {
             console.log(error);
             resp.code = HttpPOSTResponseCode.unknownError;
         }
-
-
         h.response(resp).code(200);
     }
 
-    private static _sign(op: UserOperation): {
+
+    private static async _send(opArr: UserOperation[]): Promise<{
         succ: boolean,
-        paymasterData: string,
+        txHash: string,
         error: string
-    } {
-        try {
-            const paymasterSignHash = getPayMasterSignHash(op);
-            const paymasterData = signPayMasterHash(paymasterSignHash, YamlConfig.getInstance().paymaster.signatureKey);
-            return {
-                succ: true,
-                paymasterData: paymasterData,
-                error: ''
-            };
-        } catch (error) {
-            return {
-                succ: false,
-                paymasterData: '0x',
-                error: 'sign error'
-            };
+    }[]> {
+        /*
+            bundler will send every 5sec 
+        */
+        const ret = {
+            succ: false,
+            txHash: '',
+            error: ''
+        };
+        const taskArr = [];
+        for (const op of opArr) {
+            taskArr.push(Bundler.getInstance().addTask(op));
         }
+        const taskRet = await Promise.all(taskArr);
+        const retArr = [];
+        for (const task of taskRet) {
+            retArr.push(Bundler.getInstance().fetchTaskState(task));
+        }
+        const retData = await Promise.all(retArr);
+        return retData;
     }
-
-
 
 }

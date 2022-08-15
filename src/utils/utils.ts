@@ -4,12 +4,13 @@
  * @Autor: z.cejay@gmail.com
  * @Date: 2022-08-09 19:12:25
  * @LastEditors: cejay
- * @LastEditTime: 2022-08-09 19:38:53
+ * @LastEditTime: 2022-08-15 21:40:18
  */
 
 import got from 'got';
 import Web3 from 'web3';
 import { SuggestedGasFees } from "../entity/suggestedGasFees";
+import { UserOperation } from '../entity/userOperation';
 import { Web3Helper } from './web3Helper';
 
 
@@ -116,6 +117,62 @@ export class Utils {
             return signedTransactionData.transactionHash;
         }
         return null;
+    }
+
+
+    static async verifyUserOperation(op: UserOperation): Promise<{
+        valid: boolean,
+        error: string
+    }> {
+        const web3 = Web3Helper.web3;
+        if (!web3.utils.isAddress(op.sender) ||
+            !web3.utils.isAddress(op.paymaster)) {
+            return {
+                valid: false,
+                error: 'valid sender or paymaster'
+            };
+        }
+        if (!Utils._checkUint(op.nonce) ||
+            !Utils._checkUint(op.callGas) ||
+            !Utils._checkUint(op.verificationGas) ||
+            !Utils._checkUint(op.preVerificationGas) ||
+            !Utils._checkUint(op.maxFeePerGas) ||
+            !Utils._checkUint(op.maxPriorityFeePerGas)
+        ) {
+            return {
+                valid: false,
+                error: 'valid nonce, callGas, verificationGas, preVerificationGas, maxFeePerGas or maxPriorityFeePerGas'
+            };
+        }
+        if (!Utils._checkHex(op.initCode) ||
+            !Utils._checkHex(op.callData) ||
+            !Utils._checkHex(op.paymasterData) ||
+            !Utils._checkHex(op.signature)
+        ) {
+            return {
+                valid: false,
+                error: 'invalid initCode, initData,paymasterData or signature'
+            };
+        }
+
+
+        return {
+            valid: true,
+            error: ''
+        };
+    }
+
+    private static _checkUint(value: number): boolean {
+        if (value % 1 === 0 && value >= 0) {
+            return true;
+        }
+        return false;
+    }
+    private static _checkHex(value: string): boolean {
+        if (value.startsWith('0x')) {
+            return true;
+        }
+        return false;
     }
 
 }

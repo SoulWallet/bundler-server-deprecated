@@ -4,7 +4,7 @@
  * @Autor: z.cejay@gmail.com
  * @Date: 2022-08-09 16:34:47
  * @LastEditors: cejay
- * @LastEditTime: 2022-08-09 19:51:11
+ * @LastEditTime: 2022-08-15 22:03:39
  */
 
 import { UserOperation } from "./entity/userOperation";
@@ -134,25 +134,54 @@ export class Bundler {
         return hash;
     }
 
-    public async fetchTaskState(opHash: string): Promise<string> {
-        for (let index = 0; index < this.yamlConfig.bundler.interval + 5; index++) {
-            const op = this.opMap.get(opHash);
-            if (!op) {
-                throw new Error(`opHash ${opHash} not found`);
-            }
-            if (op.state === 1) {
-                if (op.txHash) {
-                    return op.txHash;
-                } else {
+    public async fetchTaskState(opHash: string | AddTaskResult): Promise<{
+        succ: boolean,
+        txHash: string,
+        error: string
+    }> {
+        if (typeof opHash === 'string') {
+            for (let index = 0; index < this.yamlConfig.bundler.interval + 5; index++) {
+                const op = this.opMap.get(opHash);
+                if (!op) {
                     throw new Error(`opHash ${opHash} not found`);
                 }
-            } else if (op.state === 2) {
-                throw new Error(`opHash ${opHash} failed`);
-            } else if (op.state === 0) {
-                await Utils.sleep(1000);
+                if (op.state === 1) {
+                    if (op.txHash) {
+                        return {
+                            succ: true,
+                            txHash: op.txHash,
+                            error: ''
+                        };
+                    } else {
+                        return {
+                            succ: false,
+                            txHash: '',
+                            error: `opHash ${opHash} not found`
+                        };
+                    }
+                } else if (op.state === 2) {
+                    return {
+                        succ: false,
+                        txHash: '',
+                        error: `opHash ${opHash} failed`
+                    };
+                } else if (op.state === 0) {
+                    await Utils.sleep(1000);
+                }
             }
+            return {
+                succ: false,
+                txHash: '',
+                error: `opHash ${opHash} timeout`
+            };
+        } else {
+            return {
+                succ: false,
+                txHash: '',
+                error: `error code ${opHash}`
+            };
         }
-        throw new Error(`opHash ${opHash} timeout`);
+
     }
 
 
