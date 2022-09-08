@@ -4,7 +4,7 @@
  * @Autor: z.cejay@gmail.com
  * @Date: 2022-08-09 11:42:47
  * @LastEditors: cejay
- * @LastEditTime: 2022-08-15 21:44:48
+ * @LastEditTime: 2022-09-07 14:05:59
  */
 
 import { UserOperation } from "./userOperation";
@@ -25,7 +25,8 @@ export enum HttpPOSTResponseCode {
     dataCanNotVerifyError = 300,
 
     unknownPayMaster = 400,
-    payMasterSignError = 401,
+    payMasterSignError = 401, 
+    specifyPayMaster = 402,
 
     bundlerError = 500,
 }

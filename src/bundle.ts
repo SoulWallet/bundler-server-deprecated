@@ -4,7 +4,7 @@
  * @Autor: z.cejay@gmail.com
  * @Date: 2022-08-09 16:34:47
  * @LastEditors: cejay
- * @LastEditTime: 2022-08-15 22:03:39
+ * @LastEditTime: 2022-09-08 10:20:32
  */
 
 import { UserOperation } from "./entity/userOperation";
@@ -41,34 +41,48 @@ export class Bundler {
     private _bundlerIndex = 0;
     private async start() {
         console.log('bundler is running');
-        const delEntry: string[] = [];
+        //const delEntry: string[] = [];
         while (true) {
             await Utils.sleep(1000 * this.yamlConfig.bundler.interval);
 
             // delEntry
-            for (const entry of delEntry) {
-                this.opMap.delete(entry);
-            }
+            // for (const entry of delEntry) {
+            //     this.opMap.delete(entry);
+            // }
 
             const privateKey = this.yamlConfig.bundler.privateKeys[(this._bundlerIndex++) % this.yamlConfig.bundler.privateKeys.length];
-            const address = Web3Helper.web3.eth.accounts.privateKeyToAccount(privateKey);
-            const sendHash: string[] = [];
+            const address = Web3Helper.web3.eth.accounts.privateKeyToAccount(privateKey).address;
+            //const sendHash: string[] = [];
             const sendOp: UserOperation[] = [];
-            for (let [hash, opState] of this.opMap.entries()) {
+            const senders: string[] = [];
+            for (let [sender, opState] of this.opMap.entries()) {
                 if (opState.state === 0) {
-                    const op = opState.op;
-                    if (op) {
-                        sendOp.push(op);
-                        sendHash.push(hash);
-                    } else {
-                        delEntry.push(hash);
+                    const ops = opState.op;
+                    if (ops) {
+                        for (let index = 0; index < ops.length; index++) {
+                            sendOp.push(ops[index]);
+                        }
+                        //sendHash.push(hash);
+                        senders.push(sender);
                     }
-                } else {
-                    // delete entry
-                    delEntry.push(hash);
+                    //  else {
+                    //     delEntry.push(hash);
+                    // }
                 }
+                //  else {
+                //     // delete entry
+                //     delEntry.push(hash);
+                // }
             }
             if (sendOp.length > 0) {
+                for (let index = 0; index < senders.length; index++) {
+                    const sender = senders[index];
+                    const ops = this.opMap.get(sender);
+                    if (ops) {
+                        ops.state = 1;
+                    }
+                }
+                let txHash = '';
                 try {
                     const handleOpsCallData = this.entryPointContract.methods.handleOps(sendOp, address).encodeABI();
                     const AASendTx = await Utils.signAndSendTransaction(
@@ -78,27 +92,24 @@ export class Bundler {
                         handleOpsCallData);
                     console.log(`AASendTx:`, AASendTx);
                     if (AASendTx) {
-                        for (const hash of sendHash) {
-                            const k = this.opMap.get(hash);
-                            if (k) {
-                                k.state = 1;
-                                k.txHash = AASendTx;
-                            }
-                        }
-                    } else {
-                        for (const hash of sendHash) {
-                            delEntry.push(hash);
-                        }
+                        txHash = AASendTx;;
                     }
                 } catch (error) {
                     console.log(`AASendTx error:`, error);
-                    for (const hash of sendHash) {
-                        delEntry.push(hash);
+                }
+                for (let index = 0; index < senders.length; index++) {
+                    const sender = senders[index];
+                    const ops = this.opMap.get(sender);
+                    if (ops) {
+                        if (txHash) {
+                            ops.state = 2;
+                            ops.txHash = txHash;
+                        } else {
+                            ops.state = 3;
+                        }
                     }
                 }
-
             }
-
         }
     }
 
@@ -107,92 +118,182 @@ export class Bundler {
         const hash = SHA256(opStr).toString();
         return hash;
     }
-
-    private opMap = new Map<string, UserOperationState>();
-
-
-    public async addTask(op: UserOperation): Promise<string | AddTaskResult> {
-        const hash = this._userOperationHash(op);
-        if (this.opMap.has(hash)) {
-            return AddTaskResult.duplicate;
+    private _userOperationsHash(ops: UserOperation[]) {
+        let opStr = '';
+        for (let index = 0; index < ops.length; index++) {
+            const op = ops[index];
+            const hash = this._userOperationHash(op);
+            opStr += hash;
         }
-        // simulateValidation  
-        try {
-            const result = await this.entryPointContract.methods.simulateValidation(op).call({
-                from: AddressZero
-            });
-            console.log(`simulateValidation result:`, result);
-        } catch (error) {
-            console.log(`simulateValidation error:`, error);
-            return AddTaskResult.simulateError;
-        }
-        this.opMap.set(hash, {
-            op: op,
-            state: 0,
-            txHash: ''
-        });
+        const hash = SHA256(opStr).toString();
         return hash;
     }
 
-    public async fetchTaskState(opHash: string | AddTaskResult): Promise<{
-        succ: boolean,
+    /**
+    * get nonce number from contract wallet
+    * @param walletAddress the wallet address
+    * @param web3 the web3 instance
+    * @param defaultBlock "earliest", "latest" and "pending"
+    * @returns the next nonce number
+    */
+    private async getNonce(walletAddress: string, defaultBlock = 'latest'): Promise<number> {
+        try {
+            const code = await Web3Helper.web3.eth.getCode(walletAddress, defaultBlock);
+            // check contract is exist
+            if (code === '0x') {
+                return 0;
+            } else {
+                const contract = new Web3Helper.web3.eth.Contract([{ "inputs": [], "name": "nonce", "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }], "stateMutability": "view", "type": "function" }], walletAddress);
+                const nonce = await contract.methods.nonce().call();
+                // try parse to number
+                const nextNonce = parseInt(nonce, 10);
+                if (isNaN(nextNonce)) {
+                    throw new Error('nonce is not a number');
+                }
+                return nextNonce;
+            }
+
+        } catch (error) {
+            throw error;
+        }
+    }
+    /**
+     * key: hash of UserOperationState::op[]
+     */
+    private opMap = new Map<string, UserOperationState>();
+
+
+    public async addTask(ops: UserOperation[]): Promise<{
         txHash: string,
+        code: AddTaskResult,
         error: string
     }> {
-        if (typeof opHash === 'string') {
-            for (let index = 0; index < this.yamlConfig.bundler.interval + 5; index++) {
-                const op = this.opMap.get(opHash);
-                if (!op) {
-                    throw new Error(`opHash ${opHash} not found`);
-                }
-                if (op.state === 1) {
-                    if (op.txHash) {
-                        return {
-                            succ: true,
-                            txHash: op.txHash,
-                            error: ''
-                        };
-                    } else {
-                        return {
-                            succ: false,
-                            txHash: '',
-                            error: `opHash ${opHash} not found`
-                        };
-                    }
-                } else if (op.state === 2) {
-                    return {
-                        succ: false,
-                        txHash: '',
-                        error: `opHash ${opHash} failed`
-                    };
-                } else if (op.state === 0) {
-                    await Utils.sleep(1000);
-                }
-            }
+        if (ops.length === 0) {
             return {
-                succ: false,
                 txHash: '',
-                error: `opHash ${opHash} timeout`
-            };
-        } else {
-            return {
-                succ: false,
-                txHash: '',
-                error: `error code ${opHash}`
+                code: AddTaskResult.EmptyOps,
+                error: 'ops is empty'
             };
         }
+        // all op must the same sender
+        let sender = ops[0].sender;
+        for (const op of ops) {
+            if (sender !== op.sender) {
+                return {
+                    txHash: '',
+                    code: AddTaskResult.multipleSender,
+                    error: 'ops is not same sender'
+                };
+            }
+        }
+        // check nonce
+        let nonce = 0;
+        try {
+            nonce = await this.getNonce(sender);
+        } catch (error) {
+            return {
+                txHash: '',
+                code: AddTaskResult.serverError,
+                error: 'get nonce error'
+            };
+        }
+        for (let index = 0; index < ops.length; index++) {
+            const op = ops[index];
+            if (op.nonce !== nonce + index) {
+                return {
+                    txHash: '',
+                    code: AddTaskResult.nonceError,
+                    error: 'nonce error'
+                };
+            }
+            try {
+                const result = await this.entryPointContract.methods.simulateValidation(op).call({
+                    from: AddressZero
+                });
+                console.log(`simulateValidation result:`, result);
+            } catch (error) {
+                console.log(`simulateValidation error:`, error);
+                return {
+                    txHash: '',
+                    code: AddTaskResult.simulateError,
+                    error: 'simulateValidation error'
+                };
 
+            }
+        }
+
+        let userOperationState = this.opMap.get(sender);
+        if (userOperationState) {
+            if (userOperationState.state !== 2 && userOperationState.state !== 3) {
+                return {
+                    txHash: '',
+                    code: AddTaskResult.pendingError,
+                    error: 'pending'
+                };
+
+            }
+        }
+
+        this.opMap.set(sender, {
+            state: 0,
+            op: ops,
+            txHash: ''
+        });
+
+        return await this.fetchTaskState(sender);
     }
 
-
-
+    private async fetchTaskState(sender: string): Promise<{
+        txHash: string,
+        code: AddTaskResult,
+        error: string
+    }> {
+        for (let index = 0; index < this.yamlConfig.bundler.interval + 5; index++) {
+            const op = this.opMap.get(sender);
+            if (!op) {
+                throw new Error(`op from sender:${sender} not found`);
+            }
+            if (op.state === 2) {
+                if (op.txHash) {
+                    return {
+                        txHash: op.txHash,
+                        code: AddTaskResult.success,
+                        error: ''
+                    };
+                } else {
+                    return {
+                        txHash: '',
+                        code: AddTaskResult.serverError,
+                        error: `op from sender:${sender} not found`
+                    };
+                }
+            } else if (op.state === 3) {
+                return {
+                    txHash: '',
+                    code: AddTaskResult.serverError,
+                    error: `op from sender:${sender} failed`
+                };
+            } else if (op.state === 0) {
+                await Utils.sleep(1000);
+            }
+        }
+        const op = this.opMap.get(sender);
+        if (op) {
+            op.state = 3;
+        }
+        return {
+            txHash: '',
+            code: AddTaskResult.serverError,
+            error: `op from sender:${sender} timeout`
+        };
+    }
 
 }
 
 class UserOperationState {
-    op?: UserOperation;
+    op?: UserOperation[];
     /**
-     * 0:pending, 1:success, 2:fail
+     * 0:idle 1:pending, 2:success, 3:fail
      */
     state?: number;
     txHash?: string;
@@ -201,6 +302,12 @@ class UserOperationState {
 
 
 export enum AddTaskResult {
+    success = 0,
     duplicate = 1,
-    simulateError = 2
+    simulateError = 2,
+    multipleSender = 3,
+    serverError = 4,
+    nonceError = 5,
+    pendingError = 6,
+    EmptyOps = 7,
 }

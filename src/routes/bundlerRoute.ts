@@ -4,12 +4,12 @@
  * @Autor: z.cejay@gmail.com
  * @Date: 2022-08-15 21:37:16
  * @LastEditors: cejay
- * @LastEditTime: 2022-08-15 22:03:45
+ * @LastEditTime: 2022-09-08 10:00:45
  */
-import { ResponseToolkit } from "@hapi/hapi";
+import { ResponseToolkit, Request } from "@hapi/hapi";
 import { HttpPOSTRequest, HttpPOSTResponse, HttpPOSTResponseCode } from "../entity/httpReqResp";
 import { UserOperation } from '../entity/userOperation';
-import { Bundler } from "../bundle";
+import { AddTaskResult, Bundler } from "../bundle";
 import { Utils } from "../utils/utils";
 
 export class BundlerRoute {
@@ -17,7 +17,9 @@ export class BundlerRoute {
         const resp = new HttpPOSTResponse(HttpPOSTResponseCode.success, '');
         let req: HttpPOSTRequest | undefined = undefined;
         try {
-            req = await request.json() as HttpPOSTRequest;
+            if (typeof (request.payload) === 'object') {
+                req = request.payload as HttpPOSTRequest;
+            }
             if (!req || !req.data) {
                 resp.code = HttpPOSTResponseCode.unknownDataError;
             } else {
@@ -37,7 +39,7 @@ export class BundlerRoute {
                                     return;
                                 }
                             }
-                            const sendRet = await BundlerRoute._send(req.data);
+                            const sendRet = await Bundler.getInstance().addTask(req.data);
                             resp.data = sendRet;
                             break;
                         default:
@@ -50,34 +52,7 @@ export class BundlerRoute {
             console.log(error);
             resp.code = HttpPOSTResponseCode.unknownError;
         }
-        h.response(resp).code(200);
-    }
-
-
-    private static async _send(opArr: UserOperation[]): Promise<{
-        succ: boolean,
-        txHash: string,
-        error: string
-    }[]> {
-        /*
-            bundler will send every 5sec 
-        */
-        const ret = {
-            succ: false,
-            txHash: '',
-            error: ''
-        };
-        const taskArr = [];
-        for (const op of opArr) {
-            taskArr.push(Bundler.getInstance().addTask(op));
-        }
-        const taskRet = await Promise.all(taskArr);
-        const retArr = [];
-        for (const task of taskRet) {
-            retArr.push(Bundler.getInstance().fetchTaskState(task));
-        }
-        const retData = await Promise.all(retArr);
-        return retData;
+        return h.response(resp).code(200);
     }
 
 }

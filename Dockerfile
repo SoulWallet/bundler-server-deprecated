@@ -17,14 +17,19 @@ RUN set -ex \
     && cd /root/dist/;npm install
 
 COPY ./start.sh /root/start.sh
+RUN set -ex \
+    && chmod +x /root/start.sh
+
 
 RUN set -ex \
     && chmod +x /root/start.sh \
     && apt clean \
     && rm -rf /var/lib/apt/lists/*
+    
+COPY ./src/ABI /root/dist/ABI
 
 COPY ./dist /root/dist
 
-EXPOSE 8080
+EXPOSE 80
 
 ENTRYPOINT ["/root/start.sh"]

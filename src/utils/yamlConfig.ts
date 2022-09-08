@@ -4,7 +4,7 @@
  * @Autor: z.cejay@gmail.com
  * @Date: 2022-08-08 21:58:13
  * @LastEditors: cejay
- * @LastEditTime: 2022-08-09 19:19:15
+ * @LastEditTime: 2022-09-08 10:54:28
  */
 import YAML from 'yaml'
 import fs from 'fs';
@@ -15,7 +15,7 @@ export class YamlConfig {
     private static instance: YamlConfig;
 
     public httpServer = {
-        host: 'localhost'
+        host: '0.0.0.0'
     };
     public web3 = {
         provider: 'https://'
@@ -24,9 +24,13 @@ export class YamlConfig {
         address: '0x<address>'
     };
     public paymaster = {
-        paymasterAddress: '0x<contract address>',
-        paymasterChecksumAddress: '0x<contract address>',
-        signatureKey: '0x<signature key>'
+        stakePaymasterAddress: '0x<contract address>',
+        stakePaymasterChecksumAddress: '0x<contract address>',
+        stakeSignatureKey: '0x<signature key>',
+        freePaymasterAddress: '0x<contract address>',
+        freePaymasterChecksumAddress: '0x<contract address>',
+        freeSignatureKey: '0x<signature key>',
+
     };
     public bundler = {
         interval: 5,
@@ -61,10 +65,16 @@ export class YamlConfig {
         if (!yamlObj.entryPoint.address) throw new Error('entryPoint::address not found');
 
         if (!yamlObj.paymaster) throw new Error('paymaster config not found');
-        if (!yamlObj.paymaster.paymasterAddress) throw new Error('paymaster::paymasterAddress not found');
-        if (typeof (yamlObj.paymaster.paymasterAddress) !== 'string') throw new Error('paymaster::paymasterAddress not string');
-        if (!yamlObj.paymaster.signatureKey) throw new Error('paymaster::signatureKey not found');
-        if (typeof (yamlObj.paymaster.signatureKey) !== 'string') throw new Error('paymaster::signatureKey not string');
+        if (!yamlObj.paymaster.stakePaymasterAddress) throw new Error('paymaster::stakePaymasterAddress not found');
+        if (typeof (yamlObj.paymaster.stakePaymasterAddress) !== 'string') throw new Error('paymaster::stakePaymasterAddress not string');
+        if (!yamlObj.paymaster.stakeSignatureKey) throw new Error('paymaster::stakeSignatureKey not found');
+        if (typeof (yamlObj.paymaster.stakeSignatureKey) !== 'string') throw new Error('paymaster::stakeSignatureKey not string');
+        if (!yamlObj.paymaster.freePaymasterAddress) throw new Error('paymaster::freePaymasterAddress not found');
+        if (typeof (yamlObj.paymaster.freePaymasterAddress) !== 'string') throw new Error('paymaster::freePaymasterAddress not string');
+        if (!yamlObj.paymaster.freeSignatureKey) throw new Error('paymaster::freeSignatureKey not found');
+        if (typeof (yamlObj.paymaster.freeSignatureKey) !== 'string') throw new Error('paymaster::freeSignatureKey not string');
+
+
 
         if (!yamlObj.bundler) throw new Error('bundler config not found');
         if (!yamlObj.bundler.privateKeys) throw new Error('bundler::privateKeys not found');
@@ -81,15 +91,28 @@ export class YamlConfig {
 
         // check address
         const _web3 = new Web3();
-        if (!_web3.utils.isAddress(this.paymaster.paymasterAddress)) {
-            throw new Error('paymaster::paymasterAddress not valid');
+        if (!_web3.utils.isAddress(this.paymaster.stakePaymasterAddress)) {
+            throw new Error('paymaster::stakePaymasterAddress not valid');
         }
-        this.paymaster.paymasterChecksumAddress = _web3.utils.toChecksumAddress(this.paymaster.paymasterAddress);
-        this.paymaster.paymasterAddress = this.paymaster.paymasterAddress.toLocaleLowerCase();
+        if (!_web3.utils.isAddress(this.paymaster.freePaymasterAddress)) {
+            throw new Error('paymaster::freePaymasterAddress not valid');
+        }
+        this.paymaster.stakePaymasterChecksumAddress = _web3.utils.toChecksumAddress(this.paymaster.stakePaymasterAddress);
+        this.paymaster.stakePaymasterAddress = this.paymaster.stakePaymasterAddress.toLocaleLowerCase();
+        this.paymaster.freePaymasterChecksumAddress = _web3.utils.toChecksumAddress(this.paymaster.freePaymasterAddress);
+        this.paymaster.freePaymasterAddress = this.paymaster.freePaymasterAddress.toLocaleLowerCase();
+
         try {
-            _web3.eth.accounts.privateKeyToAccount(this.paymaster.signatureKey);
+            _web3.eth.accounts.privateKeyToAccount(this.paymaster.stakeSignatureKey);
         } catch (error) {
-            throw new Error('paymaster::signatureKey not valid');
+            throw new Error('paymaster::stakeSignatureKey not valid');
+        }
+
+
+        try {
+            _web3.eth.accounts.privateKeyToAccount(this.paymaster.freeSignatureKey);
+        } catch (error) {
+            throw new Error('paymaster::freeSignatureKey not valid');
         }
 
         if (!_web3.utils.isAddress(this.entryPoint.address)) {

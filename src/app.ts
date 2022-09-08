@@ -4,13 +4,13 @@
  * @Autor: z.cejay@gmail.com
  * @Date: 2022-08-08 21:53:06
  * @LastEditors: cejay
- * @LastEditTime: 2022-08-15 22:05:18
+ * @LastEditTime: 2022-09-07 19:38:11
  */
 
 import { Server } from '@hapi/hapi';
 import { httpServerPort } from './defines';
 import { YamlConfig } from './utils/yamlConfig';
-import { route } from './routes/route';
+import { routeHub } from './routes/routeHub';
 import { Web3Helper } from './utils/web3Helper';
 import { Bundler } from './bundle';
 import { UserOperation } from './entity/userOperation';
@@ -35,21 +35,21 @@ async function main() {
     });
 
     server.route({
-        method: 'POST',
+        method: ['PUT', 'POST'],
         path: '/sign',
-        handler: route.paymasterRoute
+        handler: routeHub.paymasterRoute
     });
     server.route({
-        method: 'POST',
+        method: ['PUT', 'POST'],
         path: '/send',
-        handler: route.bundlerRoute
+        handler: routeHub.bundlerRoute
     });
 
     // handler all other requests
     server.route({
         method: '*',
         path: '/{p*}',
-        handler: route.index
+        handler: routeHub.index
     });
 
 

@@ -1,6 +1,6 @@
 # http server config
 httpServer:
-  host: "localhost"
+  host: "0.0.0.0"
 
 # web3 config
 web3:
@@ -12,8 +12,10 @@ entryPoint:
 
 # paymaster config
 paymaster:
-  paymasterAddress: "0x<address>"
-  signatureKey: "0x<privateKey>"
+  stakePaymasterAddress: "0x<address>"
+  stakeSignatureKey: "0x<privateKey>"
+  freePaymasterAddress: "0x<address>"
+  freeSignatureKey: "0x<privateKey>"
 
 # bundler config
 bundler:
