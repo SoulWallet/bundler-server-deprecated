@@ -4,7 +4,7 @@
  * @Autor: z.cejay@gmail.com
  * @Date: 2022-08-09 16:34:47
  * @LastEditors: cejay
- * @LastEditTime: 2022-09-08 10:20:32
+ * @LastEditTime: 2022-09-08 20:19:06
  */
 
 import { UserOperation } from "./entity/userOperation";
@@ -273,9 +273,9 @@ export class Bundler {
                     code: AddTaskResult.serverError,
                     error: `op from sender:${sender} failed`
                 };
-            } else if (op.state === 0) {
-                await Utils.sleep(1000);
             }
+            await Utils.sleep(1000);
+
         }
         const op = this.opMap.get(sender);
         if (op) {
