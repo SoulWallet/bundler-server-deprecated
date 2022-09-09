@@ -4,7 +4,7 @@
  * @Autor: z.cejay@gmail.com
  * @Date: 2022-08-09 16:34:47
  * @LastEditors: cejay
- * @LastEditTime: 2022-09-08 20:19:06
+ * @LastEditTime: 2022-09-09 20:16:51
  */
 
 import { UserOperation } from "./entity/userOperation";
@@ -57,12 +57,10 @@ export class Bundler {
             const senders: string[] = [];
             for (let [sender, opState] of this.opMap.entries()) {
                 if (opState.state === 0) {
-                    const ops = opState.op;
-                    if (ops) {
-                        for (let index = 0; index < ops.length; index++) {
-                            sendOp.push(ops[index]);
-                        }
-                        //sendHash.push(hash);
+                    const op = opState.op;
+                    if (op) {
+                        sendOp.push(op);
+                        
                         senders.push(sender);
                     }
                     //  else {
@@ -158,38 +156,21 @@ export class Bundler {
         }
     }
     /**
-     * key: hash of UserOperationState::op[]
+     * key: hash of UserOperationState::op
      */
     private opMap = new Map<string, UserOperationState>();
 
 
-    public async addTask(ops: UserOperation[]): Promise<{
+    public async addTask(op: UserOperation): Promise<{
         txHash: string,
         code: AddTaskResult,
         error: string
     }> {
-        if (ops.length === 0) {
-            return {
-                txHash: '',
-                code: AddTaskResult.EmptyOps,
-                error: 'ops is empty'
-            };
-        }
-        // all op must the same sender
-        let sender = ops[0].sender;
-        for (const op of ops) {
-            if (sender !== op.sender) {
-                return {
-                    txHash: '',
-                    code: AddTaskResult.multipleSender,
-                    error: 'ops is not same sender'
-                };
-            }
-        }
+
         // check nonce
         let nonce = 0;
         try {
-            nonce = await this.getNonce(sender);
+            nonce = await this.getNonce(op.sender);
         } catch (error) {
             return {
                 txHash: '',
@@ -197,32 +178,31 @@ export class Bundler {
                 error: 'get nonce error'
             };
         }
-        for (let index = 0; index < ops.length; index++) {
-            const op = ops[index];
-            if (op.nonce !== nonce + index) {
-                return {
-                    txHash: '',
-                    code: AddTaskResult.nonceError,
-                    error: 'nonce error'
-                };
-            }
-            try {
-                const result = await this.entryPointContract.methods.simulateValidation(op).call({
-                    from: AddressZero
-                });
-                console.log(`simulateValidation result:`, result);
-            } catch (error) {
-                console.log(`simulateValidation error:`, error);
-                return {
-                    txHash: '',
-                    code: AddTaskResult.simulateError,
-                    error: 'simulateValidation error'
-                };
-
-            }
+        if (nonce !== op.nonce) {
+            return {
+                txHash: '',
+                code: AddTaskResult.nonceError,
+                error: 'nonce error'
+            };
         }
 
-        let userOperationState = this.opMap.get(sender);
+        try {
+            const result = await this.entryPointContract.methods.simulateValidation(op).call({
+                from: AddressZero
+            });
+            console.log(`simulateValidation result:`, result);
+        } catch (error) {
+            console.log(`simulateValidation error:`, error);
+            return {
+                txHash: '',
+                code: AddTaskResult.simulateError,
+                error: 'simulateValidation error'
+            };
+
+        }
+
+
+        let userOperationState = this.opMap.get(op.sender);
         if (userOperationState) {
             if (userOperationState.state !== 2 && userOperationState.state !== 3) {
                 return {
@@ -234,13 +214,13 @@ export class Bundler {
             }
         }
 
-        this.opMap.set(sender, {
+        this.opMap.set(op.sender, {
             state: 0,
-            op: ops,
+            op,
             txHash: ''
         });
 
-        return await this.fetchTaskState(sender);
+        return await this.fetchTaskState(op.sender);
     }
 
     private async fetchTaskState(sender: string): Promise<{
@@ -291,7 +271,7 @@ export class Bundler {
 }
 
 class UserOperationState {
-    op?: UserOperation[];
+    op?: UserOperation;
     /**
      * 0:idle 1:pending, 2:success, 3:fail
      */

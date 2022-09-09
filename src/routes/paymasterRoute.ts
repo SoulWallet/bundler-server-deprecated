@@ -16,35 +16,31 @@ export class PaymasterRoute {
             if (!req || !req.data) {
                 resp.code = HttpPOSTResponseCode.unknownDataError;
             } else {
-                const opArr = req.data as UserOperation[];
-                if (!opArr) {
-                    resp.code = HttpPOSTResponseCode.unknownDataError;
-                } else if (!Array.isArray(opArr) || opArr.length === 0) {
+                const op = req.data as UserOperation;
+                if (!op) {
                     resp.code = HttpPOSTResponseCode.unknownDataError;
                 } else {
                     switch (req.method) {
                         case 'sign':
-                            for (const op of opArr) {
-                                const verifyResult = await Utils.verifyUserOperation(op);
-                                if (!verifyResult.valid) {
-                                    resp.code = HttpPOSTResponseCode.dataCanNotVerifyError;
-                                    resp.msg = verifyResult.error;
-                                    break;
-                                }
-                                // else if (op.paymaster.toLocaleLowerCase() != YamlConfig.getInstance().paymaster.stakePaymasterAddress &&
-                                //     op.paymaster.toLocaleLowerCase() != YamlConfig.getInstance().paymaster.freePaymasterAddress) {
-                                //     resp.code = HttpPOSTResponseCode.unknownPayMaster;
-                                //     return;
-                                // }
-                                // else if (op.paymaster) {
-                                //     resp.code = HttpPOSTResponseCode.specifyPayMaster;
-                                //     return;
-                                // }
+
+                            const verifyResult = await Utils.verifyUserOperation(op);
+                            if (!verifyResult.valid) {
+                                resp.code = HttpPOSTResponseCode.dataCanNotVerifyError;
+                                resp.msg = verifyResult.error;
+                                break;
                             }
-                            resp.data = [];
-                            for (const op of opArr) {
-                                resp.data.push(PaymasterRoute._sign(op));
-                            }
+                            // else if (op.paymaster.toLocaleLowerCase() != YamlConfig.getInstance().paymaster.stakePaymasterAddress &&
+                            //     op.paymaster.toLocaleLowerCase() != YamlConfig.getInstance().paymaster.freePaymasterAddress) {
+                            //     resp.code = HttpPOSTResponseCode.unknownPayMaster;
+                            //     return;
+                            // }
+                            // else if (op.paymaster) {
+                            //     resp.code = HttpPOSTResponseCode.specifyPayMaster;
+                            //     return;
+                            // }
+
+                            resp.data = PaymasterRoute._sign(op);
+
                             break;
                         default:
                             resp.code = HttpPOSTResponseCode.unknownMethodError;

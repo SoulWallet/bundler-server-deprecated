@@ -4,14 +4,14 @@
  * @Autor: z.cejay@gmail.com
  * @Date: 2022-08-09 11:42:47
  * @LastEditors: cejay
- * @LastEditTime: 2022-09-07 14:05:59
+ * @LastEditTime: 2022-09-09 20:18:11
  */
 
 import { UserOperation } from "./userOperation";
 
 export class HttpPOSTRequest {
     method: 'sign' | 'send' | undefined;
-    data?: UserOperation[];
+    data?: UserOperation;
     extra?: any = {};
 }
 
