@@ -4,7 +4,7 @@
  * @Autor: z.cejay@gmail.com
  * @Date: 2022-08-15 21:37:16
  * @LastEditors: cejay
- * @LastEditTime: 2022-09-08 10:00:45
+ * @LastEditTime: 2022-09-09 20:17:51
  */
 import { ResponseToolkit, Request } from "@hapi/hapi";
 import { HttpPOSTRequest, HttpPOSTResponse, HttpPOSTResponseCode } from "../entity/httpReqResp";
@@ -23,22 +23,20 @@ export class BundlerRoute {
             if (!req || !req.data) {
                 resp.code = HttpPOSTResponseCode.unknownDataError;
             } else {
-                const opArr = req.data as UserOperation[];
-                if (!opArr) {
-                    resp.code = HttpPOSTResponseCode.unknownDataError;
-                } else if (!Array.isArray(opArr) || opArr.length === 0) {
+                const op = req.data as UserOperation;
+                if (!op) {
                     resp.code = HttpPOSTResponseCode.unknownDataError;
                 } else {
                     switch (req.method) {
                         case 'send':
-                            for (const op of opArr) {
-                                const verifyResult = await Utils.verifyUserOperation(op);
-                                if (!verifyResult.valid) {
-                                    resp.code = HttpPOSTResponseCode.dataCanNotVerifyError;
-                                    resp.msg = verifyResult.error;
-                                    return;
-                                }
+
+                            const verifyResult = await Utils.verifyUserOperation(op);
+                            if (!verifyResult.valid) {
+                                resp.code = HttpPOSTResponseCode.dataCanNotVerifyError;
+                                resp.msg = verifyResult.error;
+                                return;
                             }
+
                             const sendRet = await Bundler.getInstance().addTask(req.data);
                             resp.data = sendRet;
                             break;
