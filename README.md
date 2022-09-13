@@ -15,6 +15,13 @@ make publish
 ### **Run**
 ```bash
 sudo curl -fsSL https://get.docker.com | sh
-sudo docker pull cejay/paymasterserver:latest
-sudo docker run -d -p 80:80 -v 'xxx/config.yaml':'/root/config.yaml' cejay/paymasterserver:latest
+
+sudo docker-compose -f docker-compose-nginx-ssl.yml up  -d
+
+sudo docker run -d \
+    --name paymaster-bundler-service \
+    --env "VIRTUAL_HOST=paymasterapi-poc.soulwallets.me" \
+    --env "LETSENCRYPT_HOST=paymasterapi-poc.soulwallets.me" \
+    -v '/home/ubuntu/config.yaml':'/root/config.yaml' \
+    cejay/paymasterserver:latest
 ```
