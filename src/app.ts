@@ -4,16 +4,14 @@
  * @Autor: z.cejay@gmail.com
  * @Date: 2022-08-08 21:53:06
  * @LastEditors: cejay
- * @LastEditTime: 2022-09-07 19:38:11
+ * @LastEditTime: 2022-09-21 09:29:05
  */
 
 import { Server } from '@hapi/hapi';
 import { httpServerPort } from './defines';
 import { YamlConfig } from './utils/yamlConfig';
 import { routeHub } from './routes/routeHub';
-import { Web3Helper } from './utils/web3Helper';
-import { Bundler } from './bundle';
-import { UserOperation } from './entity/userOperation';
+import { Web3Helper } from './utils/web3Helper';  
 
 process.on('unhandledRejection', (err) => {
     console.error(err);
@@ -35,14 +33,14 @@ async function main() {
     });
 
     server.route({
-        method: ['PUT', 'POST'],
-        path: '/sign',
-        handler: routeHub.paymasterRoute
+        method: ['GET'],
+        path: '/{requestId}',
+        handler: routeHub.bundlerRouteGet
     });
     server.route({
         method: ['PUT', 'POST'],
-        path: '/send',
-        handler: routeHub.bundlerRoute
+        path: '/',
+        handler: routeHub.bundlerRouteAdd
     });
 
     // handler all other requests

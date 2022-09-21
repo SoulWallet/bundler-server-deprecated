@@ -16,19 +16,19 @@ build:
 
 .PHONY:dockerbuild
 dockerbuild:
-	@echo "Building docker image paymasterserver:$(VERSION)"
-	docker build -f ./Dockerfile -t paymasterserver:$(VERSION) .
+	@echo "Building docker image bundlerserver:$(VERSION)"
+	docker build -f ./Dockerfile -t bundlerserver:$(VERSION) .
 
 .PHONY: dockertag
 dockertag:
 	@echo "Tagging docker image $(TAG)"
-	docker tag paymasterserver:$(VERSION) cejay/paymasterserver:$(TAG)
+	docker tag bundlerserver:$(VERSION) cejay/bundlerserver:$(TAG)
 	
 
 .PHONY:dockerpublish
 dockerpublish:
-	@echo "Publishing to cejay/paymasterserver:$(TAG)"
-	docker push cejay/paymasterserver:$(TAG)
+	@echo "Publishing to cejay/bundlerserver:$(TAG)"
+	docker push cejay/bundlerserver:$(TAG)
 
 
 .PHONY: publish
