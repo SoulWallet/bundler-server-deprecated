@@ -1,5 +1,5 @@
-# paymaster-server
-a simple paymaster and bundler server
+# bundler-server
+a simple bundler server
 
 
 ### **Init**
@@ -19,9 +19,9 @@ sudo curl -fsSL https://get.docker.com | sh
 sudo docker-compose -f docker-compose-nginx-ssl.yml up  -d
 
 sudo docker run -d \
-    --name paymaster-bundler-service \
-    --env "VIRTUAL_HOST=paymasterapi-poc.soulwallets.me" \
-    --env "LETSENCRYPT_HOST=paymasterapi-poc.soulwallets.me" \
+    --name bundler-service \
+    --env "VIRTUAL_HOST=bundler-poc.soulwallets.me" \
+    --env "LETSENCRYPT_HOST=bundler-poc.soulwallets.me" \
     -v '/home/ubuntu/config.yaml':'/root/config.yaml' \
-    cejay/paymasterserver:latest
+    cejay/bundlerserver:latest
 ```

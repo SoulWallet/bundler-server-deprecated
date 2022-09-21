@@ -4,16 +4,16 @@
  * @Autor: z.cejay@gmail.com
  * @Date: 2022-08-08 22:57:17
  * @LastEditors: cejay
- * @LastEditTime: 2022-09-07 10:37:38
+ * @LastEditTime: 2022-09-21 09:10:41
  */
-import { BundlerRoute } from './bundlerRoute';
+import { BundlerRouteAdd } from './bundlerRouteAdd';
+import { bundlerRouteGet } from './bundlerRouteGet';
 import { Index } from './index';
-import { PaymasterRoute } from './paymasterRoute';
 
 const routeHub = {
     index: Index.handler,
-    paymasterRoute: PaymasterRoute.handler,
-    bundlerRoute: BundlerRoute.handler
+    bundlerRouteAdd: BundlerRouteAdd.handler,
+    bundlerRouteGet: bundlerRouteGet.handler,
 };
 
 export { routeHub };

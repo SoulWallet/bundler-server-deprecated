@@ -4,7 +4,7 @@
  * @Autor: z.cejay@gmail.com
  * @Date: 2022-08-09 19:12:25
  * @LastEditors: cejay
- * @LastEditTime: 2022-08-15 21:40:18
+ * @LastEditTime: 2022-09-20 23:27:22
  */
 
 import got from 'got';
@@ -88,23 +88,26 @@ export class Utils {
         privateKey: string,
         to: string | undefined,
         value: string,
+        gas: number,
+        gasPrice: number | undefined,
+        maxPriorityFeePerGas: number | undefined,
+        maxFeePerGas: number | undefined,
         data: string | undefined) {
         const web3 = Web3Helper.web3;
-        const chainId = await web3.eth.net.getId();
-        const gasPrice = await Utils.getGasPrice(chainId);
         const account = web3.eth.accounts.privateKeyToAccount(privateKey);
         const rawTx = {
             from: account.address,
             to: to,
             value: value,
             data: data,
-            gas: web3.utils.toWei('1', 'ether'),
-            maxPriorityFeePerGas: gasPrice.MaxPriority,
-            maxFeePerGas: gasPrice.Max
+            gas: gas,
+            maxPriorityFeePerGas: maxPriorityFeePerGas,
+            maxFeePerGas: maxFeePerGas,
+            gasPrice: gasPrice
         };
 
-        let gas = (await web3.eth.estimateGas(rawTx)) * 5;
-        rawTx.gas = web3.utils.toHex(web3.utils.toBN(gas)); // gas limit
+        // let gas = (await web3.eth.estimateGas(rawTx)) * 5;
+        // rawTx.gas = web3.utils.toHex(web3.utils.toBN(gas)); // gas limit
         let signedTransactionData = await account.signTransaction(rawTx);
         if (signedTransactionData.rawTransaction && signedTransactionData.transactionHash) {
             web3.eth.sendSignedTransaction(signedTransactionData.rawTransaction, (err: any, hash: string) => {
@@ -120,10 +123,10 @@ export class Utils {
     }
 
 
-    static async verifyUserOperation(op: UserOperation): Promise<{
+    static verifyUserOperation(op: UserOperation): {
         valid: boolean,
         error: string
-    }> {
+    } {
         const web3 = Web3Helper.web3;
         if (!web3.utils.isAddress(op.sender) ||
             !web3.utils.isAddress(op.paymaster)) {
