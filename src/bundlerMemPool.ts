@@ -4,7 +4,7 @@
  * @Autor: z.cejay@gmail.com
  * @Date: 2022-09-20 20:45:29
  * @LastEditors: cejay
- * @LastEditTime: 2022-09-21 15:30:57
+ * @LastEditTime: 2022-10-04 10:40:07
  */
 
 import { UserOperation } from "./entity/userOperation";
@@ -45,6 +45,10 @@ export class BundlerMemPool {
     public static code_not_ready: Code = {
         code: 6,
         msg: 'bundler server not ready'
+    };
+    public static code_simulate_fail: Code = {
+        code: 7,
+        msg: 'simulate validation fail'
     };
 
 
@@ -158,13 +162,13 @@ export class BundlerMemPool {
                     continue;
                 }
 
-                try {
-                    const nonce = await this.getNonce(sender);
-                    data.nonce = nonce;
-                } catch (error) {
-                    console.error(error);
-                    continue;
-                }
+                // try {
+                //     const nonce = await this.getNonce(sender);
+                //     data.nonce = nonce;
+                // } catch (error) {
+                //     console.error(error);
+                //     continue;
+                // }
 
                 const ops = data.data.filter(op => op.op.nonce === data.nonce);
                 if (ops.length === 0) {
@@ -292,22 +296,27 @@ export class BundlerMemPool {
             return new Ret(BundlerMemPool.code_gas_too_low, '');
         }
 
+        if (await this.simulateValidation(op)) {
+        } else {
+            return new Ret(BundlerMemPool.code_simulate_fail, '');
+        }
+
         const walletAddress = op.sender.toLowerCase();
 
         const nonce = op.nonce;
 
-        let onlineNonce = 0;
-        try {
-            onlineNonce = await this.getNonce(walletAddress);
-        } catch (error) {
-            console.error(error);
-            return new Ret(BundlerMemPool.code_nonce_error, '');
-        }
-        if (nonce < onlineNonce) {
-            return new Ret(BundlerMemPool.code_nonce_too_low, '');
-        } else if (nonce > onlineNonce + 10) {
-            return new Ret(BundlerMemPool.code_nonce_error, '');
-        }
+        let onlineNonce = nonce;
+        // try {
+        //     onlineNonce = await this.getNonce(walletAddress);
+        // } catch (error) {
+        //     console.error(error);
+        //     return new Ret(BundlerMemPool.code_nonce_error, '');
+        // }
+        // if (nonce < onlineNonce) {
+        //     return new Ret(BundlerMemPool.code_nonce_too_low, '');
+        // } else if (nonce > onlineNonce + 1) {
+        //     return new Ret(BundlerMemPool.code_nonce_error, '');
+        // }
 
         const requestId = getRequestId(op, this.yamlConfig.entryPoint.address, this.chainId);
 

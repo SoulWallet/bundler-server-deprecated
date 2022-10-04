@@ -4,7 +4,7 @@
  * @Autor: z.cejay@gmail.com
  * @Date: 2022-08-09 19:12:25
  * @LastEditors: cejay
- * @LastEditTime: 2022-09-20 23:27:22
+ * @LastEditTime: 2022-09-26 21:34:50
  */
 
 import got from 'got';
@@ -110,13 +110,22 @@ export class Utils {
         // rawTx.gas = web3.utils.toHex(web3.utils.toBN(gas)); // gas limit
         let signedTransactionData = await account.signTransaction(rawTx);
         if (signedTransactionData.rawTransaction && signedTransactionData.transactionHash) {
-            web3.eth.sendSignedTransaction(signedTransactionData.rawTransaction, (err: any, hash: string) => {
-                if (err) {
+            try {
+                web3.eth.sendSignedTransaction(signedTransactionData.rawTransaction, (err: any, hash: string) => {
+                    if (err) {
+                        console.log(err);
+                    } else {
+                        console.log(`tx:${hash} has been sent, please wait few secs to confirm`);
+                    }
+                }).catch((err) => {
                     console.log(err);
-                } else {
-                    console.log(`tx:${hash} has been sent, please wait few secs to confirm`);
-                }
-            });
+                    return null;
+                });
+            } catch (error) {
+                console.log(error);
+                return null;
+            }
+
             return signedTransactionData.transactionHash;
         }
         return null;

@@ -4,7 +4,7 @@
  * @Autor: z.cejay@gmail.com
  * @Date: 2022-08-08 21:53:06
  * @LastEditors: cejay
- * @LastEditTime: 2022-09-21 09:29:05
+ * @LastEditTime: 2022-09-26 21:28:14
  */
 
 import { Server } from '@hapi/hapi';
@@ -15,7 +15,7 @@ import { Web3Helper } from './utils/web3Helper';
 
 process.on('unhandledRejection', (err) => {
     console.error(err);
-    process.exit(1);
+    //process.exit(1);
 });
 
 const yamlConfig: YamlConfig = YamlConfig.getInstance();
