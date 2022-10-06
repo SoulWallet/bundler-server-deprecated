@@ -2,3 +2,4 @@
 node_modules
 config.yaml
 dist
+applog/bundler.log

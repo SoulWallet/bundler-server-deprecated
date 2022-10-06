@@ -4,17 +4,8 @@
  * @Autor: z.cejay@gmail.com
  * @Date: 2022-09-21 12:11:14
  * @LastEditors: cejay
- * @LastEditTime: 2022-09-21 12:11:15
+ * @LastEditTime: 2022-10-06 16:11:06
  */
-/*
- * @Description: 
- * @Version: 1.0
- * @Autor: z.cejay@gmail.com
- * @Date: 2022-08-09 11:42:47
- * @LastEditors: cejay
- * @LastEditTime: 2022-09-09 20:18:11
- */
-
 import { UserOperation } from "./userOperation";
 
 export class HttpPOSTRequest {

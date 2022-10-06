@@ -4,7 +4,7 @@
  * @Autor: z.cejay@gmail.com
  * @Date: 2022-09-20 20:45:29
  * @LastEditors: cejay
- * @LastEditTime: 2022-10-04 10:40:07
+ * @LastEditTime: 2022-10-06 21:21:04
  */
 
 import { UserOperation } from "./entity/userOperation";
@@ -15,6 +15,8 @@ import path from 'path';
 import { Utils } from "./utils/utils";
 import { AddressZero } from "./defines";
 import { getRequestId } from "./utils/userOp";
+import { Logger } from './utils/logger';
+const logger = Logger.Instance().logger;
 
 export class BundlerMemPool {
 
@@ -50,7 +52,6 @@ export class BundlerMemPool {
         code: 7,
         msg: 'simulate validation fail'
     };
-
 
 
 
@@ -106,7 +107,6 @@ export class BundlerMemPool {
         nonce: number
     }>();
 
-
     private constructor() {
         const _entrypointABI = JSON.parse(fs.readFileSync(path.join(__dirname, 'ABI', 'EntryPoint.json'), 'utf8'));
         this.entryPointContract = new Web3Helper.web3.eth.Contract(_entrypointABI, this.yamlConfig.entryPoint.address);
@@ -119,7 +119,7 @@ export class BundlerMemPool {
 
     private _bundlerIndex = 0;
     private async start() {
-        console.log('bundler is running');
+        logger.info('bundler is running');
 
         this.chainId = await Web3Helper.web3.eth.getChainId();
 
@@ -144,7 +144,7 @@ export class BundlerMemPool {
                     this.maxPriorityFeePerGas = this.maxFeePerGas;
                 }
                 catch (error) {
-                    console.log('get gas now error:', error);
+                    logger.error(`get gas price error:`, error);
                     continue;
                 }
             } else {
@@ -153,7 +153,7 @@ export class BundlerMemPool {
                     this.maxFeePerGas = parseInt(gasNow.Max, 10);
                     this.maxPriorityFeePerGas = parseInt(gasNow.MaxPriority, 10);
                 } catch (error) {
-                    console.log('get gas now by codefi error:', error);
+                    logger.error(`get gas now by codefi error:`, error); 
                 }
             }
 
@@ -191,11 +191,10 @@ export class BundlerMemPool {
                         }
                     }
                 } else {
-                    console.error('nonce error =>' + sender + ' on nonce ' + data.nonce);
+                    logger.error(`nonce error: ${sender} on nonce ${data.nonce}`);
                 }
             }
             if (sendOp.length > 0) {
-                console.log(sendOp);
 
                 const handleOpsCallData = this.entryPointContract.methods.handleOps(sendOp, this.yamlConfig.bundler.beneficiary).encodeABI();
                 let tx = null;
@@ -212,7 +211,7 @@ export class BundlerMemPool {
                         handleOpsCallData);
 
                 } catch (error) {
-                    console.error(error);
+                    logger.error(`send tx error:`, error); 
                 }
                 for (const data of sendData) {
                     if (tx) {
@@ -235,7 +234,7 @@ export class BundlerMemPool {
                 return true;
             }
         } catch (error) {
-            console.log(`simulateValidation error:`, error);
+            logger.error(`simulateValidation error:`, error);
         }
         return false;
     }
@@ -282,6 +281,7 @@ export class BundlerMemPool {
     }
 
     public async add(op: UserOperation): Promise<Ret> {
+        logger.info(`add op: ${JSON.stringify(op)}`);
         if (this.maxFeePerGas === 0 || this.maxPriorityFeePerGas === 0) {
             return new Ret(BundlerMemPool.code_not_ready, '');
         }
@@ -374,7 +374,7 @@ export class BundlerMemPool {
             walletAddress: walletAddress,
             nonce: nonce
         });
-        console.log(`add op to mempool: ${requestId}`);
+        logger.info(`add op success: ${JSON.stringify(op)}`);
         return new Ret(BundlerMemPool.code_succ, requestId);
     }
 
@@ -394,7 +394,7 @@ export class BundlerMemPool {
                 // find nonce in poolData.data
                 for (let i = poolData.data.length - 1; i >= 0; i--) {
                     if (poolData.data[i].op.nonce === addressNonceUnion.nonce) {
-                        if (poolData.data[i].requestId === requestId) {
+                        if (poolData.data[i].requestId === requestId || true) {
                             return {
                                 code: this.status2Code(poolData.data[i].status),
                                 msg: poolData.data[i].status,
