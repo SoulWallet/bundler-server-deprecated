@@ -4,15 +4,25 @@
  * @Autor: z.cejay@gmail.com
  * @Date: 2022-08-15 21:37:16
  * @LastEditors: cejay
- * @LastEditTime: 2022-09-20 23:33:50
+ * @LastEditTime: 2022-10-06 21:23:20
  */
 import { ResponseToolkit, Request } from "@hapi/hapi";
 import { UserOperation } from '../entity/userOperation';
 import { BundlerMemPool } from "../bundlerMemPool";
 import { Utils } from "../utils/utils";
+import { IpLimit } from "../utils/ipLimit";
+
+import { Logger } from '../utils/logger';
+const logger = Logger.Instance().logger;
 
 export class BundlerRouteAdd {
     public static async handler(request: Request, h: ResponseToolkit, err?: Error | undefined) {
+        const limit = IpLimit.Instance().check(request, h);
+        if (limit) {
+            return limit;
+        }
+
+
         let req: UserOperation | undefined = undefined;
         try {
             if (typeof (request.payload) === 'object') {
@@ -29,11 +39,12 @@ export class BundlerRouteAdd {
                     return h.response('dataCanNotVerifyError:' + verifyResult.error).code(403);
                 } else {
                     const ret = await BundlerMemPool.getInstance().add(req);
+                    logger.info('add request:' + JSON.stringify(req));
                     return h.response(ret).code(200);
                 }
             }
         } catch (error) {
-            console.log(error);
+            logger.error('add request error:' + JSON.stringify(req));
             //500	Internal Server Error 
             return h.response("error").code(500);
         }

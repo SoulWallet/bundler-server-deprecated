@@ -4,7 +4,7 @@
  * @Autor: z.cejay@gmail.com
  * @Date: 2022-08-09 19:12:25
  * @LastEditors: cejay
- * @LastEditTime: 2022-09-26 21:34:50
+ * @LastEditTime: 2022-10-06 21:24:08
  */
 
 import got from 'got';
@@ -12,6 +12,9 @@ import Web3 from 'web3';
 import { SuggestedGasFees } from "../entity/suggestedGasFees";
 import { UserOperation } from '../entity/userOperation';
 import { Web3Helper } from './web3Helper';
+
+import { Logger } from '../utils/logger';
+const logger = Logger.Instance().logger;
 
 
 export class Utils {
@@ -43,7 +46,7 @@ export class Utils {
                 return null;
             }
         } catch (error) {
-            console.log(error);
+            logger.error(error); 
             return null;
         }
     }
@@ -113,16 +116,16 @@ export class Utils {
             try {
                 web3.eth.sendSignedTransaction(signedTransactionData.rawTransaction, (err: any, hash: string) => {
                     if (err) {
-                        console.log(err);
+                        logger.error(err); 
                     } else {
-                        console.log(`tx:${hash} has been sent, please wait few secs to confirm`);
+                        logger.info(`sendSignedTransaction success, hash:${hash}`); 
                     }
                 }).catch((err) => {
-                    console.log(err);
+                    logger.error(err); 
                     return null;
                 });
             } catch (error) {
-                console.log(error);
+                logger.error(error); 
                 return null;
             }
 
